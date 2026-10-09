@@ -1,3 +1,4 @@
+
 #ifndef LOCKER_H
 #define LOCKER_H
 
@@ -75,7 +76,7 @@ public:
     {
         if (pthread_cond_init(&m_cond, NULL) != 0)
         {
-            //pthread_mutex_destroy(&m_mutex);
+            // pthread_mutex_destroy(&m_mutex);
             throw std::exception();
         }
     }
@@ -86,17 +87,17 @@ public:
     bool wait(pthread_mutex_t *m_mutex)
     {
         int ret = 0;
-        //pthread_mutex_lock(&m_mutex);
+        // pthread_mutex_lock(&m_mutex);
         ret = pthread_cond_wait(&m_cond, m_mutex);
-        //pthread_mutex_unlock(&m_mutex);
+        // pthread_mutex_unlock(&m_mutex);
         return ret == 0;
     }
     bool timewait(pthread_mutex_t *m_mutex, struct timespec t)
     {
         int ret = 0;
-        //pthread_mutex_lock(&m_mutex);
+        // pthread_mutex_lock(&m_mutex);
         ret = pthread_cond_timedwait(&m_cond, m_mutex, &t);
-        //pthread_mutex_unlock(&m_mutex);
+        // pthread_mutex_unlock(&m_mutex);
         return ret == 0;
     }
     bool signal()
@@ -109,7 +110,85 @@ public:
     }
 
 private:
-    //static pthread_mutex_t m_mutex;
+    // static pthread_mutex_t m_mutex;
     pthread_cond_t m_cond;
+};
+
+// ========== RAII 锁管理（自动加锁/解锁） ==========
+template <typename LockType>
+class LockGuard
+{
+public:
+    explicit LockGuard(LockType &lock) : m_lock(lock)
+    {
+        m_lock.lock();
+    }
+    ~LockGuard()
+    {
+        m_lock.unlock();
+    }
+    // 禁止拷贝
+    LockGuard(const LockGuard &) = delete;
+    LockGuard &operator=(const LockGuard &) = delete;
+
+private:
+    LockType &m_lock;
+};
+
+template <typename LockType>
+class LockGuardDeferred
+{
+public:
+    explicit LockGuardDeferred(LockType &lock) : m_lock(lock), m_locked(false)
+    {
+    }
+    ~LockGuardDeferred()
+    {
+        if (m_locked)
+        {
+            m_lock.unlock();
+        }
+    }
+    void lock()
+    {
+        m_lock.lock();
+        m_locked = true;
+    }
+    void unlock()
+    {
+        m_lock.unlock();
+        m_locked = false;
+    }
+    bool owns_lock() const
+    {
+        return m_locked;
+    }
+    // 禁止拷贝
+    LockGuardDeferred(const LockGuardDeferred &) = delete;
+    LockGuardDeferred &operator=(const LockGuardDeferred &) = delete;
+
+private:
+    LockType &m_lock;
+    bool m_locked;
+};
+
+template <typename LockType>
+class UnlockThenLock
+{
+public:
+    explicit UnlockThenLock(LockType &lock) : m_lock(lock)
+    {
+        m_lock.unlock();
+    }
+    ~UnlockThenLock()
+    {
+        m_lock.lock();
+    }
+    // 禁止拷贝
+    UnlockThenLock(const UnlockThenLock &) = delete;
+    UnlockThenLock &operator=(const UnlockThenLock &) = delete;
+
+private:
+    LockType &m_lock;
 };
 #endif

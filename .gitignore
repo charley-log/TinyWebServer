@@ -1,0 +1,15 @@
+# 编译产物
+server
+*.o
+*.a
+*.so
+
+# 日志
+2026_*_ServerLog
+ServerLog/
+*.log
+
+# 编辑器
+.vscode/
+.idea/
+*.swp

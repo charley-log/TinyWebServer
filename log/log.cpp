@@ -16,6 +16,7 @@ Log::~Log()
 {
     if (m_fp != NULL)
     {
+        fflush(m_fp);
         fclose(m_fp);
     }
 }
@@ -141,7 +142,7 @@ void Log::write_log(int level, const char *format, ...)
 
     m_mutex.unlock();
 
-    if (m_is_async && !m_log_queue->full())
+    if (m_is_async && !m_log_queue->full() && level != 3)
     {
         m_log_queue->push(log_str);
     }
